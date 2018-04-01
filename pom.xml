@@ -19,7 +19,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>MainActivity</mainClass>
+                            <mainClass>bot.MainActivity</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -52,6 +52,7 @@
             <version>3.6</version>
             <scope>compile</scope>
         </dependency>
+
     </dependencies>
 
 
