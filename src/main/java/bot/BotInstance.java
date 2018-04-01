@@ -1,4 +1,4 @@
-package bot;
+1package bot;
 
 import connectiontest.IsDownChecker;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
@@ -8,7 +8,7 @@ import org.telegram.telegrambots.exceptions.TelegramApiException;
 
 public class BotInstance extends TelegramLongPollingBot {
     
-    private static final String TOKEN = "546120256:AAFSS0xYUZikndLF9YEuGmXJBO5b9iAza-k";
+    private static final String TOKEN = "546120256:AAFSS0xYUZikndLF9YEuGmXJBO5b9iAz1-k";
     private static final String BOT_USERNAME = "is_down_bot";
 
     private void isDownRequestHandler(String url) {
