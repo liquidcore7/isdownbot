@@ -1,4 +1,4 @@
-1package bot;
+package bot;
 
 import connectiontest.IsDownChecker;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
