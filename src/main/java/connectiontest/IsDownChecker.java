@@ -4,10 +4,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 class LogStruct {
@@ -32,8 +29,11 @@ public class IsDownChecker {
 
 
     public IsDownChecker(String host) {
-        this.hostName = host.substring(0, host.indexOf('/',
-                host.startsWith("http") ? 7 : 0));
+        if (host.startsWith("http"))
+            host = host.substring(host.indexOf('/') + 2);
+        if (host.contains("/"))
+            host = host.substring(0, host.indexOf('/'));
+        this.hostName = host;
     }
 
     public IsDownChecker(String host, int timeOut) {
@@ -63,7 +63,9 @@ public class IsDownChecker {
 
     public boolean available() {
         try {
-            return getByHostName(hostName).isReachable(timeOutMs);
+            Socket sock = new Socket();
+            sock.connect(new InetSocketAddress(getByHostName(hostName), 80), timeOutMs);
+            return sock.isConnected();
         } catch (IOException notConnected) {
             return false;
         }
