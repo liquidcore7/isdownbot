@@ -1,6 +1,8 @@
 package bot;
 
-import connectiontest.IsDownChecker;
+import connectiontest.DownChecker;
+import connectiontest.IsDownCheckHelper;
+import database.DBHandler;
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -10,15 +12,16 @@ import static cfg.Configuration.BOT_TOKEN;
 import static cfg.Configuration.BOT_USERNAME;
 
 public class BotInstance extends TelegramLongPollingBot {
+    private DBHandler dbConnection;
+
+    public BotInstance() {
+        dbConnection = new DBHandler();
+    }
 
     private void isDownRequestHandler(String url, long chatId) {
-        IsDownChecker checker = new IsDownChecker(url);
-        StringBuilder message = new StringBuilder();
-        message.append("Website: ").append(url).append('\n');
-        message.append("Status: ").append(
-                checker.available() ? "On" : "Off")
-                .append("line\n");
-        SendMessage send = new SendMessage(chatId, message.toString());
+        DownChecker checker = new DownChecker(dbConnection, url, chatId);
+        String message = checker.quickCheck();
+        SendMessage send = new SendMessage(chatId, message);
         try {
             execute(send);
         } catch (TelegramApiException sendFailed) {
@@ -28,7 +31,7 @@ public class BotInstance extends TelegramLongPollingBot {
             } catch (TelegramApiException errFailed) {
                 // nothing will help here
             }
-        }
+        } // catch sendFailed
     }
 
     @Override
@@ -41,6 +44,7 @@ public class BotInstance extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             if (update.getMessage().getText().startsWith("/check")) {
                 try {
+                    // TODO: regex url check
                     isDownRequestHandler(
                             update.getMessage().getText().split(" ")[1],
                             update.getMessage().getChatId()
@@ -50,13 +54,10 @@ public class BotInstance extends TelegramLongPollingBot {
                             "Invalid syntax, try \"/command [url]\" without quotes.");
                     try {
                         execute(errMessage);
-                    } catch (TelegramApiException errFailed) {
-                        //
-                    }
-
-                }
-            }
-        }
+                    } catch (TelegramApiException errFailed) { }
+                } // catch noUrlGiven
+            } // endif isCheckCommand
+        }// endif hasMessage
     }
 
     @Override
