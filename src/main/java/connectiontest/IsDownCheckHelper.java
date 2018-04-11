@@ -4,10 +4,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -36,6 +36,17 @@ public class IsDownCheckHelper {
         if (path != -1)
             url = url.substring(0, path);
         return url;
+    }
+
+    static long ipStringToLong(String ipStr) {
+        long accumulator = 0L;
+        long multiplier = 1L;
+        String[] ipChunks = ipStr.split("\\.");
+        for (int i = ipChunks.length - 1; i >= 0; i--) {
+            accumulator += Integer.parseInt(ipChunks[i]) * multiplier;
+            multiplier *= 256;
+        }
+        return accumulator;
     }
 
     static boolean isIPv4(String ip) {
@@ -100,7 +111,7 @@ public class IsDownCheckHelper {
         String[] ipPort = proxy.split(":");
         if (ipPort.length != 2)
             return false;
-        return availableWithProxy(examplePage, CONNECTION_WAIT_MILLIS,
+        return availableWithProxy(examplePage, CONNECTION_WAIT_MILLIS*2,
                 new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(ipPort[0], Integer.parseInt(ipPort[1]) ))
         );
     }

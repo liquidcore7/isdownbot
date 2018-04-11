@@ -28,6 +28,15 @@ public class DownChecker {
 
     }
 
+    private String proxyToString(Proxy proxy) {
+        String proxyStr = proxy.address().toString();
+        int semicolonIdx = proxyStr.indexOf(':');
+        if (semicolonIdx == -1)
+            return proxyStr;
+        String ip = proxyStr.substring(0, semicolonIdx);
+        return proxyStr + " (" + dbConnection.getCountry(IsDownCheckHelper.ipStringToLong(ip)) + ")";
+    }
+
     // checks just one ip without proxy
     public String quickCheck() {
         dbConnection.setUrlAccessed(hostName, userId);
@@ -39,24 +48,28 @@ public class DownChecker {
                     IsDownCheckHelper.available(addresses[0], timeOut) ? "On" : "Off"
             ) + "line";
         }
-        return message + "\n\n" + "Checked last two hours by " +
-                dbConnection.accessedLastNMinutes(hostName, 120) + " users.";
+        long haveChecked = dbConnection.accessedLastNMinutes(hostName, 120);
+        return message + "\n\n" + "Checked last two hours by "
+                + haveChecked + ((haveChecked % 10 == 1) ? " user." : " users.");
     }
 
     public String fullCheck() {
         dbConnection.setUrlAccessed(hostName, userId);
+
         StringBuilder message = new StringBuilder();
         message.append("Website: ").append(hostName).append("\nServers` IPs: ");
         if (addresses == null)
             return message.toString() + "none found";
         message.append('\n');
+        // print server IPs
         Stream.of(addresses).forEach(ip -> message.append(ip.getHostAddress()).append('\n'));
+
         message.append("Your proxies: ");
         List<Proxy> proxies = dbConnection.getUserProxyList(userId);
         if (proxies.isEmpty()) {
             message.append("none");
         } else {
-            proxies.forEach(proxy -> message.append('\n').append(proxy));
+            proxies.forEach(proxy -> message.append('\n').append(proxyToString(proxy)));
         }
         message.append('\n');
         for (InetAddress address : addresses) {
@@ -65,11 +78,17 @@ public class DownChecker {
                     ( (IsDownCheckHelper.available(address, timeOut)) ? "OK" : "FAILED")
             );
             for (Proxy proxy : proxies) {
-                message.append("\nWith proxy ").append(proxy).append(": ").append(
+                message.append("\nWith proxy ").append(proxyToString(proxy)).append(": ").append(
                         ( (IsDownCheckHelper.availableWithProxy(address, timeOut, proxy)) ? "OK" : "FAILED")
                 );
             }
             message.append('\n');
+        }
+        long usersChecked = dbConnection.accessedLastNMinutes(hostName, 60*24);
+        message.append("\nChecked last 24 hours by ").append(usersChecked).append(" user");
+        // plural
+        if (usersChecked % 10 != 1) {
+            message.append('s');
         }
         return message.toString();
     }
