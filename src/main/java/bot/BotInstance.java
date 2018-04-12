@@ -146,16 +146,6 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage errMessage = new SendMessage().setChatId(chatId);
         String[] commandAndArgs = updateMessageText.split(" ");
 
-        if (commandAndArgs.length < 2) {
-            errMessage.setText("No arguments given for command " + commandAndArgs[0] + ". Usage: /command args");
-            try {
-                execute(errMessage);
-            } catch (TelegramApiException errFailed) {
-                onTelegramApiException(errFailed, chatId);
-            }
-            return;
-        }
-
         String command = commandAndArgs[0];
         String url = commandAndArgs[1].toLowerCase();
 
@@ -176,6 +166,17 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage errMessage = new SendMessage().setChatId(chatId);
 
         if (!noArgRequestMapping.containsKey(updateMessageText)) {
+
+            if (argRequestMapping.containsKey(updateMessageText)) {
+                errMessage.setText("No arguments given for command " + updateMessageText + ". Usage: /command args");
+                try {
+                    execute(errMessage);
+                } catch (TelegramApiException errFailed) {
+                    onTelegramApiException(errFailed, chatId);
+                }
+                return;
+            }
+
             errMessage.setText("No such command exists: " + updateMessageText);
             try {
                 execute(errMessage);
@@ -195,13 +196,16 @@ public class BotInstance extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().getText().startsWith("/")) {
-            if (update.getMessage().getText().contains(" ")) {
-                argCommandRouter(update.getMessage().getText(), update.getMessage().getChatId());
-            } else {
-                noArgCommandRouter(update.getMessage().getText(), update.getMessage().getChatId());
-            }
-        }
+        if (update.hasMessage()) {
+            String updateMessageText = update.getMessage().getText().trim();
+            if (updateMessageText.startsWith("/")) {
+                if (updateMessageText.contains(" ")) {
+                    argCommandRouter(updateMessageText, update.getMessage().getChatId());
+                } else {
+                    noArgCommandRouter(updateMessageText, update.getMessage().getChatId());
+                }
+            } // endif isCommand
+        } // endif hasMessage
     }
 
     @Override
