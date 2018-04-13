@@ -5,6 +5,7 @@ import database.DBHandler;
 
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
+import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import static cfg.Configuration.BOT_TOKEN;
 import static cfg.Configuration.BOT_USERNAME;
@@ -23,10 +25,11 @@ public class BotInstance extends TelegramLongPollingBot {
     private ExecutorService threadPool;
     private Map<String, BiConsumer<String, Long>> argRequestMapping = new HashMap<>();
     private Map<String, Consumer<Long>> noArgRequestMapping = new HashMap<>();
+    private static final Logger logger = Logger.getLogger(BotInstance.class.getName());
 
     public BotInstance() {
         dbConnection = new DBHandler();
-        threadPool = Executors.newCachedThreadPool();
+        threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         argRequestMapping.put("/check", this::checkCommandHandler);
         argRequestMapping.put("/fullCheck", this::fullCheckCommandHandler);
@@ -40,10 +43,11 @@ public class BotInstance extends TelegramLongPollingBot {
     // TODO: logging everywhere
     private void onTelegramApiException(TelegramApiException exception, long chatId) {
         try {
+            logger.warning("Telegram API exception thrown: \"" + exception.getMessage() + "\". Sending error message...");
             SendMessage errMessage = new SendMessage(chatId, "Command failed, try again later");
             execute(errMessage);
         } catch (TelegramApiException errFailed) {
-            // nothing will help here
+            logger.severe("Failed to report the exception: \"" + exception.getMessage() + "\"");
         }
     }
 
@@ -59,6 +63,7 @@ public class BotInstance extends TelegramLongPollingBot {
             SendMessage message = new SendMessage(chatId, "Welcome to isDown? bot. Now you can check any url for availability!");
             try {
                 execute(message);
+                logger.fine("New user! userId=" + chatId);
             } catch (TelegramApiException greetFailed) {
                 onTelegramApiException(greetFailed, chatId);
             }
@@ -70,8 +75,10 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage message = new SendMessage().setChatId(chatId);
         if (succeeded) {
             message.setText("Proxy successfully cleared");
+            logger.fine("User " + chatId + " cleared proxies");
         } else {
             message.setText("Clearing proxy failed, try again later");
+            logger.warning("Failed to clear proxies for user " + chatId);
         }
         try {
             execute(message);
@@ -86,6 +93,7 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage send = new SendMessage(chatId, message);
         try {
             execute(send);
+            logger.fine("User " + chatId + " quickChecked \"" + url + "\"");
         } catch (TelegramApiException sendFailed) {
             onTelegramApiException(sendFailed, chatId);
         }
@@ -96,8 +104,10 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage message = new SendMessage().setChatId(chatId);
         if (succeeded) {
             message.setText("Proxy successfully added");
+            logger.fine("User " + chatId + " added proxy: " + proxyIpPort);
         } else {
-            message.setText("Adding proxy failed. Please use working HTTP proxy by specifying 'ip.ip.ip.ip:port'");
+            message.setText("Adding proxy failed. Please use working SOCKSv5 proxy by specifying 'ip.ip.ip.ip:port'");
+            logger.warning("User " + chatId + " failed to add proxy " + proxyIpPort);
         }
         try {
             execute(message);
@@ -112,6 +122,7 @@ public class BotInstance extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage(chatId, message);
         try {
             execute(sendMessage);
+            logger.fine("User " + chatId + " fullChecked \"" + url + "\"");
         } catch (TelegramApiException sendFailed) {
             onTelegramApiException(sendFailed, chatId);
         }
@@ -124,8 +135,10 @@ public class BotInstance extends TelegramLongPollingBot {
             SendMessage message = new SendMessage().setChatId(chatId);
             if (succeeded) {
                 message.setText("New timeout set to " + newTimeout + " ms.");
+                logger.fine("User " + chatId + " has set new timeout: " + newTimeout);
             } else {
                 message.setText("Setting new timeout failed, try again later.");
+                logger.warning("Failed to set new timeout (" + newTimeout + ") for user " + chatId);
             }
             try {
                 execute(message);
@@ -136,6 +149,7 @@ public class BotInstance extends TelegramLongPollingBot {
             SendMessage message = new SendMessage(chatId, "Incorrect number given");
             try {
                 execute(message);
+                logger.warning("Wrong number entered as /setTimeout argument (" + newTimeout + ") by user " + chatId);
             } catch (TelegramApiException errFailed) {
                 onTelegramApiException(errFailed, chatId);
             }
@@ -153,6 +167,7 @@ public class BotInstance extends TelegramLongPollingBot {
             errMessage.setText("No such command exists: " + command);
             try {
                 execute(errMessage);
+                logger.warning("User " + chatId + " entered wrong command: " + command);
             } catch (TelegramApiException errFailed) {
                 onTelegramApiException(errFailed, chatId);
             }
@@ -171,6 +186,7 @@ public class BotInstance extends TelegramLongPollingBot {
                 errMessage.setText("No arguments given for command " + updateMessageText + ". Usage: /command args");
                 try {
                     execute(errMessage);
+                    logger.warning("No arguments given for argCommand " + updateMessageText);
                 } catch (TelegramApiException errFailed) {
                     onTelegramApiException(errFailed, chatId);
                 }
@@ -180,6 +196,7 @@ public class BotInstance extends TelegramLongPollingBot {
             errMessage.setText("No such command exists: " + updateMessageText);
             try {
                 execute(errMessage);
+                logger.warning("User " + chatId + " entered wrong command: " + updateMessageText);
             } catch (TelegramApiException errFailed) {
                 onTelegramApiException(errFailed, chatId);
             }
