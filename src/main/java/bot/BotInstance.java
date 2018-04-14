@@ -5,7 +5,6 @@ import database.DBHandler;
 
 import org.telegram.telegrambots.api.methods.send.SendMessage;
 import org.telegram.telegrambots.api.objects.Update;
-import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.exceptions.TelegramApiException;
 
@@ -40,7 +39,6 @@ public class BotInstance extends TelegramLongPollingBot {
         noArgRequestMapping.put("/clearProxy", this::clearProxyCommandHandler);
     }
 
-    // TODO: logging everywhere
     private void onTelegramApiException(TelegramApiException exception, long chatId) {
         try {
             logger.warning("Telegram API exception thrown: \"" + exception.getMessage() + "\". Sending error message...");
